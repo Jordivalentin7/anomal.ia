@@ -11,103 +11,118 @@ NODE_INFO = {
         "title": "Consulta del operador",
         "kicker": "INPUT",
         "summary": (
-            "Punto de entrada al pipeline. El operador formula una pregunta "
-            "en lenguaje natural desde la interfaz SCADA."
+            "Punto de entrada. El operador formula una pregunta en lenguaje "
+            "natural, libre o desde el banco de ejemplos."
         ),
         "details": [
-            "Acepta preguntas de cualquier longitud y nivel técnico",
-            "No se realiza preprocesamiento ni normalización",
-            "La consulta se pasa tal cual al clasificador",
+            "Acepta cualquier longitud y nivel técnico",
+            "Sin preprocesamiento: se pasa tal cual al clasificador",
         ],
         "example": "«¿Es seguro un cloro residual de 0.4 mg/L?»",
-        "module": "src/ui/common.py · query_picker()",
+        "module": "src/ui/common.py",
     },
     "2": {
-        "title": "Clasificador de nivel",
-        "kicker": "DETECT COMPLEXITY",
+        "title": "Clasificador híbrido",
+        "kicker": "HEURÍSTICA + LLM",
         "summary": (
-            "Analiza la consulta mediante patrones léxicos y determina su "
-            "nivel de complejidad antes de enviarla al modelo."
+            "Detecta el nivel de complejidad combinando una heurística rápida "
+            "con un LLM clasificador para los casos ambiguos."
         ),
         "details": [
-            "Regex y keywords identifican verbos de acción, operadores y unidades",
-            "Detecta solicitudes de cálculo, normativa o diagnóstico complejo",
-            "Devuelve nivel + score de confianza + razones",
+            "Casos obvios → heurística (0 ms)",
+            "Casos ambiguos → escalado al LLM con ejemplos del banco oficial",
+            "Si el LLM falla, vuelve a la heurística sin romper la app",
         ],
-        "example": "classify('¿Es seguro...?') → Básica · confianza 0.82",
-        "module": "src/classifier.py · classify()",
+        "example": "classify('¿Es seguro...?') → Básica · 0.80",
+        "module": "src/classifier.py",
     },
     "3": {
         "title": "Nivel detectado",
-        "kicker": "BASIC · INTERMEDIATE · ADVANCED · EXPERT",
+        "kicker": "BÁSICA · INTERMEDIA · AVANZADA · EXPERTA",
         "summary": (
-            "Etiqueta discreta que selecciona la plantilla de prompt. "
-            "Se propaga al siguiente paso como clave de lookup."
+            "Etiqueta que selecciona la plantilla de prompt y el perfil de "
+            "respuesta esperada."
         ),
         "details": [
-            "Básica — verificación directa, respuesta de 20–40 palabras",
-            "Intermedia — consulta normativa, 60–100 palabras",
-            "Avanzada — cálculo con fórmula, 150–250 palabras",
-            "Experta — análisis multicriterio, 300–500 palabras",
+            "Básica — verificación binaria · 15–35 palabras",
+            "Intermedia — criterio normativo · 30–70 palabras",
+            "Avanzada — cálculo explícito · 60–140 palabras",
+            "Experta — diagnóstico multivariable · 90–200 palabras",
         ],
-        "example": "LENGTH_TARGETS['Básica'] = {optimal: 20–40}",
-        "module": "src/config.py · LENGTH_TARGETS",
+        "example": "Nivel = 'Básica'",
+        "module": "src/config.py",
     },
     "4": {
-        "title": "Prompt especializado",
-        "kicker": "TEMPLATE · LEVEL",
+        "title": "Preparación del prompt",
+        "kicker": "ANTES DE PREGUNTAR AL MODELO",
         "summary": (
-            "Selecciona y aplica el prompt de sistema correspondiente al "
-            "nivel detectado. Cada plantilla ajusta tono, extensión y formato."
+            "Construye las instrucciones para el modelo: plantilla del nivel "
+            "+ contexto del dataset + verificación de los valores mencionados."
         ),
         "details": [
-            "Plantilla específica por nivel (no un prompt único como el baseline)",
-            "Incluye rango de palabras esperado y tipo de respuesta",
-            "Inyecta el resultado de verificación determinista si existe",
+            "Comprueba valores (cloro, pH, presión…) contra los rangos del dataset",
+            "Le indica al modelo si están dentro o fuera de rango",
+            "Aplica la plantilla específica del nivel detectado",
         ],
-        "example": "prompt_for('Básica') → 'Responde en 1 frase…'",
-        "module": "src/prompts.py · prompt_for()",
+        "example": "«Cloro 0.4 mg/L → DENTRO DE RANGO» + plantilla Básica",
+        "module": "src/verification.py · src/prompts.py",
     },
     "5": {
         "title": "LLM · Inferencia",
-        "kicker": "MISTRAL · GROQ · LLAMA",
+        "kicker": "MISTRAL · GROQ",
         "summary": (
-            "Llamada al modelo de lenguaje seleccionado con el prompt "
-            "especializado + la consulta del operador."
+            "Llamada al modelo elegido con el prompt preparado. Devuelve "
+            "texto y latencia."
         ),
         "details": [
-            "Proveedores soportados: Mistral AI y Groq (Llama 3.1/3.3)",
-            "Temperatura fija en 0.0 para reproducibilidad",
-            "max_tokens = 800, timeout por defecto",
+            "Mistral AI: Mixtral 8x7B, Small, Medium",
+            "Groq: Llama 3.3 70B, Llama 3.1 8B Instant",
+            "Temperatura 0.0 para que el resultado sea reproducible",
         ],
-        "example": "call_model(spec, system_prompt, user_prompt)",
-        "module": "src/providers.py · call_model()",
+        "example": "call_model(modelo, prompt, consulta)",
+        "module": "src/providers.py",
     },
     "6": {
-        "title": "Respuesta ajustada",
-        "kicker": "OUTPUT · OPTIMIZED",
+        "title": "Revisión de la respuesta",
+        "kicker": "DESPUÉS DE RESPONDER",
         "summary": (
-            "Salida final devuelta al operador. A diferencia del baseline, "
-            "su formato y extensión coinciden con lo esperado para el nivel."
+            "Verifica los cálculos numéricos y puntúa la respuesta según el "
+            "nivel detectado."
         ),
         "details": [
-            "Evaluada por cinco métricas: keywords, unidades, técnica, cálculo y longitud",
-            "Puntuación ponderada según el nivel",
-            "Comparable frente a la respuesta baseline en la sección 04",
+            "Recalcula las operaciones del modelo y avisa si se ha equivocado",
+            "Puntúa con cinco criterios (palabras clave, unidades, técnica, cálculo, longitud)",
+            "La importancia de cada criterio se ajusta al nivel",
         ],
-        "example": "evaluate(response, 'Básica') → score 0.87",
-        "module": "src/evaluation.py · evaluate()",
+        "example": "«El modelo dijo 35.84, lo correcto es 36.10 → ⚠ aviso»",
+        "module": "src/verification.py · src/evaluation.py",
+    },
+    "7": {
+        "title": "Respuesta final",
+        "kicker": "LO QUE VE EL OPERADOR",
+        "summary": (
+            "Salida ajustada al nivel, acompañada de métricas y avisos en "
+            "caso de error de cálculo."
+        ),
+        "details": [
+            "Texto plano y legible, sin notación matemática complicada",
+            "Métricas visibles: palabras, tiempo, puntuación",
+            "Si la consulta es oficial, se guarda en «Resultados obtenidos»",
+        ],
+        "example": "«0.4 mg/L dentro del rango 0.2-1.0» (18w · 0.7s · Q 0.93)",
+        "module": "src/router.py · src/results_store.py",
     },
 }
 
 
 NODE_ORDER = [
     ("1", "Consulta del operador"),
-    ("2", "Clasificador de nivel"),
+    ("2", "Clasificador híbrido"),
     ("3", "Nivel detectado"),
-    ("4", "Prompt especializado"),
+    ("4", "Preparación del prompt"),
     ("5", "LLM · Inferencia"),
-    ("6", "Respuesta ajustada"),
+    ("6", "Revisión de la respuesta"),
+    ("7", "Respuesta final"),
 ]
 
 
@@ -252,11 +267,8 @@ def render() -> None:
     page_header(
         number="05",
         page_name="Flujo del router",
-        title_html="Pipeline de clasificación en <em>tiempo real</em>",
-        lede=(
-            "Pulsa en cualquier nodo del diagrama para ver su rol, "
-            "parámetros y ubicación en el código."
-        ),
+        title_html="Pipeline adaptativo del <em>operador a la respuesta</em>",
+        lede="Pulsa en cualquier nodo para ver qué hace.",
     )
 
     st.markdown(FLOW_CSS, unsafe_allow_html=True)
