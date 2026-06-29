@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from ..reference_bank import lookup_reference
+from ..reference_bank import bank_size, lookup_reference
 from ..results_store import get_all_results, get_result_for
 from .common import EXAMPLE_QUERIES, page_header
 
@@ -124,7 +124,20 @@ def _render_question_card(query: str, level: str, idx: int) -> None:
             unsafe_allow_html=True,
         )
         if paper is None:
-            st.info("Pregunta no encontrada en el banco oficial.")
+            if bank_size() == 0:
+                st.markdown(
+                    "<div style='background:#F1F5F9;border:1px dashed #CBD5E1;"
+                    "border-radius:10px;padding:0.9rem 1.05rem;color:#475569;"
+                    "font-size:0.85rem;text-align:center;line-height:1.5;'>"
+                    "<b>Material no incluido en el repositorio público.</b><br>"
+                    "Las respuestas oficiales del paper de Arnau-Muñoz et al. "
+                    "no se distribuyen aquí. Coloca <code>data/reference_responses.json</code> "
+                    "en local si tienes acceso a las evaluaciones del trabajo."
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.info("Esta pregunta no está en el banco oficial cargado.")
         else:
             words = paper.word_count
             with st.container(border=True):
@@ -238,6 +251,24 @@ def render() -> None:
             "automáticamente al ejecutar la consulta en la vista Router adaptativo."
         ),
     )
+
+    # === Aviso si falta el banco oficial (instalación pública sin material) ===
+    if bank_size() == 0:
+        st.markdown(
+            "<div style='background:rgba(14,165,233,0.08);"
+            "border:1px solid rgba(14,165,233,0.30);border-radius:12px;"
+            "padding:0.95rem 1.2rem;margin-bottom:1.2rem;"
+            "font-family:Manrope,sans-serif;font-size:0.92rem;color:#0C4A6E;"
+            "line-height:1.55;'>"
+            "<b>ℹ Las respuestas oficiales del paper no están cargadas.</b><br>"
+            "Esta instalación pública no incluye <code>data/reference_responses.json</code> "
+            "(material derivado del trabajo de Arnau-Muñoz et al., uso solo local con "
+            "autorización académica). Los paneles de la columna izquierda mostrarán "
+            "<i>«Material no incluido»</i>. Los paneles del TFG (derecha) funcionan "
+            "normalmente al ejecutar consultas en la vista <b>Router adaptativo</b>."
+            "</div>",
+            unsafe_allow_html=True,
+        )
 
     # === Banda de progreso ===
     all_queries = [q for level in EXAMPLE_QUERIES.values() for q in level]
