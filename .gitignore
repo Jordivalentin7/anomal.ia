@@ -209,4 +209,18 @@ __marimo__/
 venv/
 .env
 __pycache__/
-*.csv
+
+# --- Específicos del TFG ---
+
+# Material derivado del trabajo de referencia (Arnau-Muñoz et al.) que NO se
+# distribuye públicamente. Reside solo en local con autorización académica.
+data/dataset_100_filas.csv
+data/reference_responses.json
+
+# Resultados experimentales generados al ejecutar la app. Son transitorios
+# y se regeneran al usar la vista "Router adaptativo".
+data/tfg_results.json
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
