@@ -83,7 +83,7 @@ NODE_INFO = {
         "module": "src/providers.py",
     },
     "6": {
-        "title": "Evaluación de la respuesta",
+        "title": "Evaluación",
         "kicker": "PUNTUACIÓN",
         "summary": (
             "Puntúa la respuesta según cinco criterios técnicos, con pesos "
@@ -121,7 +121,7 @@ NODE_ORDER = [
     ("3", "Nivel detectado"),
     ("4", "Preparación del prompt"),
     ("5", "LLM · Inferencia"),
-    ("6", "Evaluación de la respuesta"),
+    ("6", "Evaluación"),
     ("7", "Respuesta final"),
 ]
 

@@ -13,9 +13,24 @@ from __future__ import annotations
 
 import streamlit as st
 
+from ..evaluation import evaluate
 from ..reference_bank import bank_size, lookup_reference
 from ..results_store import get_all_results, get_result_for
 from .common import EXAMPLE_QUERIES, page_header
+
+
+def _recompute_paper_quality(answer: str, level: str) -> float:
+    """Re-evalúa la respuesta del paper con el evaluador del TFG.
+
+    Esto garantiza que la Q mostrada en pantalla para ambas columnas
+    (paper y TFG) provenga del mismo sistema de evaluación con los mismos
+    pesos adaptados al nivel detectado. Hace la comparación directamente
+    interpretable en lugar de mezclar dos evaluadores distintos.
+    """
+    try:
+        return evaluate(answer, level=level).total
+    except Exception:  # noqa: BLE001
+        return 0.0
 
 
 _LEVEL_META = {
@@ -140,6 +155,9 @@ def _render_question_card(query: str, level: str, idx: int) -> None:
                 st.info("Esta pregunta no está en el banco oficial cargado.")
         else:
             words = paper.word_count
+            # Recalculamos la Q del paper con el evaluador del TFG para que
+            # la comparación con la columna derecha sea apples-to-apples.
+            paper_q = _recompute_paper_quality(paper.answer, level)
             with st.container(border=True):
                 st.markdown(paper.answer)
             st.markdown(
@@ -150,7 +168,7 @@ def _render_question_card(query: str, level: str, idx: int) -> None:
                 f"color:#475569;'>"
                 f"<span><b style='color:#0A1F3D;'>{words}</b> palabras</span>"
                 f"<span><b style='color:#0A1F3D;'>{paper.response_time:.2f}s</b></span>"
-                f"<span>Q&nbsp;<b style='color:#0A1F3D;'>{paper.quality_score:.2f}</b></span>"
+                f"<span>Q&nbsp;<b style='color:#0A1F3D;'>{paper_q:.2f}</b></span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
