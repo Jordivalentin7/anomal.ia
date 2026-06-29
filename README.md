@@ -73,7 +73,7 @@ src/
   prompts.py                 Plantillas de prompt especializadas por nivel
   router.py                  Flujo adaptativo + baseline
   evaluation.py              Evaluador de cinco componentes ponderados
-  verification.py            Verificación numérica y aritmética
+  verification.py            Verificación numérica previa al LLM
   scada.py                   Carga de dataset + contexto inyectable al LLM
   reference_bank.py          Lookup de respuestas oficiales del paper
   results_store.py           Persistencia de resultados del router
@@ -151,9 +151,6 @@ requirements.txt             Dependencias Python
 - El clasificador híbrido alterna entre heurística (instantánea) y LLM
   (si la heurística no está segura); la primera llamada del LLM de la
   sesión arrastra un cold start de ~1 s.
-- La verificación aritmética detecta errores en cálculos explícitos
-  pero no errores conceptuales (uso de fórmula incorrecta con aritmética
-  bien hecha).
 
 ---
 

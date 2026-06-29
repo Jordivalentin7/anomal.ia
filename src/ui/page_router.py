@@ -69,31 +69,6 @@ def _render_response_metrics(outcome) -> None:
     )
 
 
-def _render_arithmetic_warnings(outcome) -> None:
-    """Si la verificación post-LLM detectó errores aritméticos, los muestra
-    como chips de aviso debajo de la respuesta.
-    """
-    findings = outcome.arithmetic_findings or []
-    if not findings:
-        return
-    parts = ["<div style='margin-top:0.5rem;'>"]
-    for f in findings:
-        parts.append(
-            f"<div style='background:rgba(234,179,8,0.10);"
-            f"border:1px solid rgba(234,179,8,0.40);border-radius:8px;"
-            f"padding:0.55rem 0.85rem;margin-bottom:0.3rem;"
-            f"font-family:Manrope,sans-serif;font-size:0.82rem;color:#713F12;'>"
-            f"<b>⚠ Verificación aritmética:</b> "
-            f"<code style='background:transparent;'>{f.expression}</code> "
-            f"→ recálculo exacto <b>{f.computed:.4g}</b>, "
-            f"la respuesta indica <b>{f.claimed:.4g}</b> "
-            f"<span style='color:#A16207;'>(diferencia {f.rel_error_pct:.2f}%)</span>"
-            f"</div>"
-        )
-    parts.append("</div>")
-    st.markdown("".join(parts), unsafe_allow_html=True)
-
-
 @st.dialog("Resultado del router", width="large")
 def _show_result_modal(baseline, adaptativo) -> None:
     """Modal centrado con animación que muestra ambas respuestas lado a lado."""
@@ -153,7 +128,6 @@ def _render_results(baseline, adaptativo) -> None:
         else:
             render_response(baseline.llm_response.content)
             _render_response_metrics(baseline)
-            _render_arithmetic_warnings(baseline)
 
     with col_r:
         st.markdown(_COL_TITLE.format(txt=right_title), unsafe_allow_html=True)
@@ -167,7 +141,6 @@ def _render_results(baseline, adaptativo) -> None:
         else:
             render_response(adaptativo.llm_response.content)
             _render_response_metrics(adaptativo)
-            _render_arithmetic_warnings(adaptativo)
 
 
 def render() -> None:
@@ -281,7 +254,6 @@ def render() -> None:
                     classification_level=adaptativo.classification.level,
                     classification_confidence=adaptativo.classification.score,
                     classification_via=via,
-                    arithmetic_findings_count=len(adaptativo.arithmetic_findings or []),
                 )
                 st.session_state["_router_just_saved"] = True
             except Exception:  # noqa: BLE001

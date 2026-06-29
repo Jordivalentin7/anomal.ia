@@ -22,10 +22,8 @@ from .evaluation import EvalScore, evaluate
 from .prompts import BASELINE_PROMPT, prompt_for
 from .providers import LLMResponse, call_model
 from .verification import (
-    ArithmeticFinding,
     VerificationFinding,
     format_findings,
-    verify_arithmetic,
     verify_query_values,
 )
 
@@ -44,9 +42,6 @@ class RouterOutcome:
     # En caso contrario es "generated" (baseline local con prompt genérico).
     baseline_source: Optional[str] = None
     baseline_metadata: Optional[dict] = None
-    # Discrepancias aritméticas detectadas en la respuesta del LLM
-    # (verificación post-generación; opcional).
-    arithmetic_findings: List[ArithmeticFinding] | None = None
 
 
 def _with_context(prompt: str, dataset_context: str) -> str:
@@ -76,7 +71,6 @@ def run_adaptive(
         expected_keywords=expected_keywords,
         expected_units=expected_units,
     )
-    arith = verify_arithmetic(resp.content) if resp.content else []
     return RouterOutcome(
         classification=classification,
         system_prompt=system_prompt,
@@ -84,7 +78,6 @@ def run_adaptive(
         score=score,
         mode="adaptativo",
         findings=findings,
-        arithmetic_findings=arith,
     )
 
 
@@ -126,7 +119,6 @@ def run_baseline(
             expected_keywords=expected_keywords,
             expected_units=expected_units,
         )
-        arith = verify_arithmetic(synthetic_resp.content)
         return RouterOutcome(
             classification=classification,
             system_prompt="(respuesta del Mixtral fine-tuneado del paper, sin prompt aplicado en este TFG)",
@@ -134,7 +126,6 @@ def run_baseline(
             score=score,
             mode="baseline",
             findings=None,
-            arithmetic_findings=arith,
             baseline_source="reference",
             baseline_metadata={
                 "source_model": "Mixtral 8x7B Instruct (fine-tuned)",
@@ -159,7 +150,6 @@ def run_baseline(
         expected_keywords=expected_keywords,
         expected_units=expected_units,
     )
-    arith = verify_arithmetic(resp.content) if resp.content else []
     return RouterOutcome(
         classification=classification,
         system_prompt=system_prompt,
@@ -167,7 +157,6 @@ def run_baseline(
         score=score,
         mode="baseline",
         findings=None,
-        arithmetic_findings=arith,
         baseline_source="generated",
         baseline_metadata=None,
     )

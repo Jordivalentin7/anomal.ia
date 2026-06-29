@@ -17,7 +17,7 @@ import json
 import os
 import re
 import unicodedata
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timezone
 from typing import Dict, Optional
 
@@ -50,7 +50,6 @@ class StoredResult:
     classification_level: str  # nivel detectado por el clasificador
     classification_confidence: float
     classification_via: str  # "Heurística" | "LLM"
-    arithmetic_findings_count: int
     timestamp: str
 
 
@@ -76,7 +75,6 @@ def save_result(
     classification_level: str,
     classification_confidence: float,
     classification_via: str,
-    arithmetic_findings_count: int,
 ) -> None:
     """Persiste el resultado de una ejecución del router. Upsert por consulta."""
     results = _load_raw()
@@ -92,7 +90,6 @@ def save_result(
         classification_level=classification_level,
         classification_confidence=round(classification_confidence, 3),
         classification_via=classification_via,
-        arithmetic_findings_count=arithmetic_findings_count,
         timestamp=datetime.now(timezone.utc).isoformat(timespec="seconds"),
     )
     results[key] = asdict(entry)
@@ -103,17 +100,23 @@ def save_result(
         json.dump({"results": results}, f, ensure_ascii=False, indent=2)
 
 
+def _from_dict(d: dict) -> StoredResult:
+    """Construye un StoredResult ignorando campos legacy (compatibilidad)."""
+    valid = {f.name for f in fields(StoredResult)}
+    return StoredResult(**{k: v for k, v in d.items() if k in valid})
+
+
 def get_result_for(query: str) -> Optional[StoredResult]:
     """Devuelve el resultado guardado para una consulta, o None."""
     raw = _load_raw().get(_normalize(query))
     if raw is None:
         return None
-    return StoredResult(**raw)
+    return _from_dict(raw)
 
 
 def get_all_results() -> Dict[str, StoredResult]:
     """Devuelve todos los resultados guardados indexados por consulta normalizada."""
-    return {k: StoredResult(**v) for k, v in _load_raw().items()}
+    return {k: _from_dict(v) for k, v in _load_raw().items()}
 
 
 def clear_result(query: str) -> bool:

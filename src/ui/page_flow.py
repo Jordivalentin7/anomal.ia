@@ -83,26 +83,26 @@ NODE_INFO = {
         "module": "src/providers.py",
     },
     "6": {
-        "title": "Revisión de la respuesta",
-        "kicker": "DESPUÉS DE RESPONDER",
+        "title": "Evaluación de la respuesta",
+        "kicker": "PUNTUACIÓN",
         "summary": (
-            "Verifica los cálculos numéricos y puntúa la respuesta según el "
-            "nivel detectado."
+            "Puntúa la respuesta según cinco criterios técnicos, con pesos "
+            "que se ajustan al nivel detectado."
         ),
         "details": [
-            "Recalcula las operaciones del modelo y avisa si se ha equivocado",
-            "Puntúa con cinco criterios (palabras clave, unidades, técnica, cálculo, longitud)",
-            "La importancia de cada criterio se ajusta al nivel",
+            "Palabras clave, unidades, tono técnico, presencia de cálculo y longitud",
+            "El cálculo solo cuenta en niveles Avanzada y Experta",
+            "La longitud premia ajustarse al rango del nivel (15–35w en Básica, 90–200w en Experta)",
         ],
-        "example": "«El modelo dijo 35.84, lo correcto es 36.10 → ⚠ aviso»",
-        "module": "src/verification.py · src/evaluation.py",
+        "example": "evaluate(respuesta, nivel='Avanzada') → 0.83",
+        "module": "src/evaluation.py",
     },
     "7": {
         "title": "Respuesta final",
         "kicker": "LO QUE VE EL OPERADOR",
         "summary": (
-            "Salida ajustada al nivel, acompañada de métricas y avisos en "
-            "caso de error de cálculo."
+            "Salida ajustada al nivel, acompañada de las métricas obtenidas "
+            "por el evaluador."
         ),
         "details": [
             "Texto plano y legible, sin notación matemática complicada",
@@ -121,7 +121,7 @@ NODE_ORDER = [
     ("3", "Nivel detectado"),
     ("4", "Preparación del prompt"),
     ("5", "LLM · Inferencia"),
-    ("6", "Revisión de la respuesta"),
+    ("6", "Evaluación de la respuesta"),
     ("7", "Respuesta final"),
 ]
 

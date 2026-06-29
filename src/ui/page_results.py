@@ -180,12 +180,6 @@ def _render_question_card(query: str, level: str, idx: int) -> None:
             )
         else:
             via_color = "#0EA5E9" if tfg.classification_via == "LLM" else "#14B8A6"
-            arith_warn = ""
-            if tfg.arithmetic_findings_count > 0:
-                arith_warn = (
-                    f"<span style='color:#A16207;'>⚠ {tfg.arithmetic_findings_count} "
-                    f"arith warning{'s' if tfg.arithmetic_findings_count != 1 else ''}</span>"
-                )
             with st.container(border=True):
                 st.markdown(tfg.response)
             st.markdown(
@@ -199,7 +193,6 @@ def _render_question_card(query: str, level: str, idx: int) -> None:
                 f"<span><b style='color:#0A1F3D;'>{tfg.latency_s:.2f}s</b></span>"
                 f"<span>Q&nbsp;<b style='color:#0A1F3D;'>{tfg.quality_score:.2f}</b></span>"
                 f"<span style='color:{via_color};'>{tfg.classification_via}</span>"
-                f"{arith_warn}"
                 f"</div>"
                 f"<div style='font-family:\"JetBrains Mono\",monospace;"
                 f"font-size:0.68rem;color:#94A3B8;text-align:center;margin-top:0.4rem;'>"
