@@ -180,8 +180,6 @@ def _render_per_model_breakdown(rows: List[IndicatorRow]) -> None:
                 "Velocidad (V)": r.speed,
                 "Concisión (C)": r.concision,
                 "Indicador (I)": r.global_score,
-                "Latencia (s)": r.latency,
-                "Palabras": r.words,
             }
             for r in rows
         ]
@@ -200,8 +198,61 @@ def _render_per_model_breakdown(rows: List[IndicatorRow]) -> None:
             "Velocidad (V)": "{:.3f}",
             "Concisión (C)": "{:.3f}",
             "Indicador (I)": "{:.3f}",
-            "Latencia (s)": "{:.2f}",
-            "Palabras": "{:.0f}",
+        }
+    )
+
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+
+def _render_quality_breakdown(runs: List[ModelRun], indicators: List[IndicatorRow]) -> None:
+    """Tabla con el desglose de las 5 dimensiones de Q por modelo.
+
+    Permite ver con qué componentes se ha construido la nota de calidad de
+    cada modelo: palabras clave, unidades, indicador técnico, cálculo y
+    longitud. Útil para entender por qué un modelo gana en Q sobre otro.
+    """
+    if not runs:
+        return
+
+    # Indexamos los indicadores para recuperar la Q total por nombre
+    q_total = {ind.model_name: ind.quality for ind in indicators}
+
+    df = pd.DataFrame(
+        [
+            {
+                "Modelo": run.model.display_name,
+                "Palabras clave (K)": run.score.keywords,
+                "Unidades (U)": run.score.units,
+                "Indicador técnico (T)": run.score.technical,
+                "Cálculo (Cálc)": run.score.calculation,
+                "Longitud (L)": run.score.length,
+                "Calidad (Q)": q_total.get(run.model.display_name, run.score.total),
+            }
+            for run in runs
+            if not run.response.error
+        ]
+    )
+    if df.empty:
+        return
+
+    # Ordenamos por Q descendente para que el mejor quede arriba
+    df = df.sort_values("Calidad (Q)", ascending=False).reset_index(drop=True)
+
+    def _highlight_winner(row: pd.Series) -> List[str]:
+        if row.name == 0:
+            return [
+                "background-color: rgba(20, 184, 166, 0.12); font-weight: 600;"
+            ] * len(row)
+        return [""] * len(row)
+
+    styled = df.style.apply(_highlight_winner, axis=1).format(
+        {
+            "Palabras clave (K)": "{:.2f}",
+            "Unidades (U)": "{:.2f}",
+            "Indicador técnico (T)": "{:.2f}",
+            "Cálculo (Cálc)": "{:.2f}",
+            "Longitud (L)": "{:.2f}",
+            "Calidad (Q)": "{:.3f}",
         }
     )
 
@@ -338,11 +389,22 @@ def render() -> None:
     with st.expander("Detalles del cálculo"):
         st.markdown("**Fórmula del indicador global**")
         _render_indicator_formula()
-        st.markdown("**Prompt del sistema aplicado**")
+
+        st.markdown("**Desglose de Q por modelo**")
+        st.caption(
+            "Cada valor de Q es la media ponderada de cinco componentes "
+            "(palabras clave, unidades, indicador técnico, cálculo y longitud) "
+            "con pesos adaptados al nivel detectado."
+        )
+        _render_quality_breakdown(last["runs"], indicator_rows)
+
+        st.markdown("**Clasificación de la consulta**")
         st.markdown(
             f"Nivel detectado: **{last['classification'].level}** · confianza "
             f"{last['classification'].score}"
         )
         for r in last["classification"].reasons:
             st.caption("· " + r)
+
+        st.markdown("**Prompt del sistema aplicado**")
         render_prompt(last["prompt"])
