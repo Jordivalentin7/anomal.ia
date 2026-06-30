@@ -434,6 +434,14 @@ def render() -> None:
         st.markdown("**Fórmula del indicador global**")
         _render_indicator_formula()
 
+        st.markdown("**Clasificación de la consulta**")
+        st.markdown(
+            f"Nivel detectado: **{last['classification'].level}** · confianza "
+            f"{last['classification'].score}"
+        )
+        for r in last["classification"].reasons:
+            st.caption("· " + r)
+
         st.markdown("**Pesos del evaluador por nivel**")
         st.caption(
             f"Pesos aplicados a cada componente del evaluador según el nivel "
@@ -449,14 +457,6 @@ def render() -> None:
             "anteriores, con los pesos del nivel detectado."
         )
         _render_quality_breakdown(last["runs"], indicator_rows)
-
-        st.markdown("**Clasificación de la consulta**")
-        st.markdown(
-            f"Nivel detectado: **{last['classification'].level}** · confianza "
-            f"{last['classification'].score}"
-        )
-        for r in last["classification"].reasons:
-            st.caption("· " + r)
 
         st.markdown("**Prompt del sistema aplicado**")
         render_prompt(last["prompt"])
