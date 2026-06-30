@@ -100,9 +100,10 @@ def _render_indicator_formula() -> None:
         r"I \;=\; 0{,}55 \cdot Q \;+\; 0{,}30 \cdot V \;+\; 0{,}15 \cdot C"
     )
     st.markdown(
-        "- **Q · Calidad** *(55 %)* — puntuación total del evaluador "
-        "(palabras clave, unidades, pertinencia técnica, cálculo y "
-        "adecuación de longitud al nivel detectado).\n"
+        "- **Q · Calidad** *(55 %)* — media ponderada de cinco componentes "
+        "léxicos: palabras clave, unidades, indicador técnico, cálculo y "
+        "longitud. Los pesos se adaptan al nivel detectado (ver tabla "
+        "*Pesos del evaluador por nivel* más abajo).\n"
         "- **V · Velocidad** *(30 %)* — `latencia_mín / latencia_modelo`. "
         "El modelo más rápido obtiene 1.0.\n"
         "- **C · Concisión** *(15 %)* — `palabras_mín / palabras_modelo`. "
@@ -198,6 +199,49 @@ def _render_per_model_breakdown(rows: List[IndicatorRow]) -> None:
             "Velocidad (V)": "{:.3f}",
             "Concisión (C)": "{:.3f}",
             "Indicador (I)": "{:.3f}",
+        }
+    )
+
+    st.dataframe(styled, use_container_width=True, hide_index=True)
+
+
+def _render_metric_weights(detected_level: str) -> None:
+    """Tabla de los pesos del evaluador por nivel.
+
+    Muestra los pesos de cada componente del evaluador para los 4 niveles,
+    resaltando la fila correspondiente al nivel detectado por el clasificador.
+    Hace explícita la ponderación adaptativa que define la fórmula de Q.
+    """
+    from ..config import METRIC_WEIGHTS
+
+    df = pd.DataFrame(
+        [
+            {
+                "Nivel": level,
+                "Palabras clave (K)": w.keywords,
+                "Unidades (U)": w.units,
+                "Indicador técnico (T)": w.technical,
+                "Cálculo (Cálc)": w.calculation,
+                "Longitud (L)": w.length,
+            }
+            for level, w in METRIC_WEIGHTS.items()
+        ]
+    )
+
+    def _highlight_detected(row: pd.Series) -> List[str]:
+        if row["Nivel"] == detected_level:
+            return [
+                "background-color: rgba(20, 184, 166, 0.12); font-weight: 600;"
+            ] * len(row)
+        return [""] * len(row)
+
+    styled = df.style.apply(_highlight_detected, axis=1).format(
+        {
+            "Palabras clave (K)": "{:.2f}",
+            "Unidades (U)": "{:.2f}",
+            "Indicador técnico (T)": "{:.2f}",
+            "Cálculo (Cálc)": "{:.2f}",
+            "Longitud (L)": "{:.2f}",
         }
     )
 
@@ -390,11 +434,19 @@ def render() -> None:
         st.markdown("**Fórmula del indicador global**")
         _render_indicator_formula()
 
+        st.markdown("**Pesos del evaluador por nivel**")
+        st.caption(
+            f"Pesos aplicados a cada componente del evaluador según el nivel "
+            f"de la consulta. Para esta consulta se ha detectado "
+            f"**{last['classification'].level}** y se aplica esa fila "
+            f"(resaltada)."
+        )
+        _render_metric_weights(last["classification"].level)
+
         st.markdown("**Desglose de Q por modelo**")
         st.caption(
-            "Cada valor de Q es la media ponderada de cinco componentes "
-            "(palabras clave, unidades, indicador técnico, cálculo y longitud) "
-            "con pesos adaptados al nivel detectado."
+            "Cada valor de Q es la media ponderada de los cinco componentes "
+            "anteriores, con los pesos del nivel detectado."
         )
         _render_quality_breakdown(last["runs"], indicator_rows)
 
