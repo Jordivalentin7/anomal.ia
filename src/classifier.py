@@ -1,20 +1,15 @@
 """Clasificador híbrido de complejidad de consultas.
 
 Pipeline en dos fases:
+
   1. Heurística rápida (regex lingüísticos sobre el texto). Se devuelve sin
-     coste cuando el match es inequívoco: consultas Básicas directas
+     coste cuando el match no tiene margen de error: consultas Básicas directas
      (verificación binaria) o Intermedias con criterio normativo/operativo.
   2. Si el patrón es ambiguo (varios niveles disparan a la vez, aparecen
      patrones Avanzada/Experta donde la heurística es menos fiable, o no
      hay patrones que disparen), se escala a un LLM clasificador rápido
-     (Llama 3.1 8B Instant en Groq) anclado por *few-shot* en el banco
-     oficial de evaluación de Arnau-Muñoz et al. (27 consultas reales).
+     (Llama 3.1 8B Instant en Groq).
 
-Si el LLM falla por cualquier motivo (API caída, sin API key, respuesta
-malformada), se devuelve el resultado heurístico como degradación elegante.
-Esto garantiza que el sistema **siempre devuelve una clasificación**.
-
-Niveles: Básica, Intermedia, Avanzada, Experta (taxonomía del artículo).
 """
 from __future__ import annotations
 
@@ -130,10 +125,8 @@ def _match_any(patterns: List[Tuple[str, str]], text: str) -> List[str]:
 def _classify_heuristic(query: str) -> ClassificationResult:
     """Clasificación determinista por patrones lingüísticos.
 
-    Cascada de especificidad decreciente:
+    Cascada decreciente:
         experta > avanzada (cálculo) > intermedia (normativa) > básica.
-    Si nada dispara, se aplica fallback a Básica corta (1 variable, ≤15 palabras)
-    o Intermedia por defecto (zona segura contra sobreelaboración).
     """
     text = query.strip().lower()
     reasons: List[str] = []
@@ -195,7 +188,7 @@ def _classify_heuristic(query: str) -> ClassificationResult:
 
 
 # ============================================================================
-# FASE 2 — Clasificador LLM (escalado en ambigüedad)
+# FASE 2 — Clasificador LLM (escalado por ambigüedad)
 # ============================================================================
 
 _CLASSIFIER_SYSTEM_PROMPT = """Clasifica la consulta del operador SCADA en uno de estos niveles:
