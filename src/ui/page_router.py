@@ -302,7 +302,8 @@ def render() -> None:
     st.markdown("<div style='height:1.8rem;'></div>", unsafe_allow_html=True)
 
     with st.expander("Detalles del cálculo"):
-        classification = last["adaptativo"].classification
+        adaptativo = last["adaptativo"]
+        classification = adaptativo.classification
         st.markdown("**Clasificación de la consulta**")
         st.markdown(
             f"Nivel detectado: **{classification.level}** · confianza "
@@ -311,7 +312,29 @@ def render() -> None:
         for r in classification.reasons:
             st.caption("· " + r)
 
-        st.markdown("**Prompt aplicado · Modo adaptativo**")
-        render_prompt(last["adaptativo"].system_prompt)
-        st.markdown("**Prompt aplicado · Modo baseline**")
+        # Verificación numérica previa: es la pieza diferencial del router.
+        # Se muestra destacada cuando la consulta contiene valores verificables.
+        if adaptativo.findings:
+            st.markdown("**Verificación numérica previa**")
+            st.caption(
+                "Comparación determinista de los valores de la consulta contra "
+                "los rangos operativos, inyectada en el prompt del usuario antes "
+                "de invocar al modelo."
+            )
+            for f in adaptativo.findings:
+                st.markdown("· " + f.line())
+
+        st.markdown("**Prompt del sistema · Modo adaptativo**")
+        render_prompt(adaptativo.system_prompt)
+        st.markdown("**Prompt del usuario · Modo adaptativo**")
+        st.caption(
+            "Mensaje que recibe el modelo con la consulta y, si aplica, el bloque "
+            "de verificación numérica previa. Es lo que distingue al router de la "
+            "comparativa de modelos."
+        )
+        render_prompt(adaptativo.user_prompt)
+
+        st.markdown("**Prompt del sistema · Modo baseline**")
         render_prompt(last["baseline"].system_prompt)
+        st.markdown("**Prompt del usuario · Modo baseline**")
+        render_prompt(last["baseline"].user_prompt)

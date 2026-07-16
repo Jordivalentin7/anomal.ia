@@ -35,6 +35,7 @@ class RouterOutcome:
     llm_response: LLMResponse
     score: EvalScore
     mode: str  # "adaptativo" | "baseline"
+    user_prompt: str = ""
     findings: List[VerificationFinding] | None = None
     # Cuando la respuesta del lado baseline proviene del modelo entrenado del
     # paper de referencia (Arnau-Muñoz et al.), `baseline_source` apunta al
@@ -77,6 +78,7 @@ def run_adaptive(
         llm_response=resp,
         score=score,
         mode="adaptativo",
+        user_prompt=user_prompt,
         findings=findings,
     )
 
@@ -125,6 +127,7 @@ def run_baseline(
             llm_response=synthetic_resp,
             score=score,
             mode="baseline",
+            user_prompt="(respuesta literal del paper; no se envía prompt de usuario en este TFG)",
             findings=None,
             baseline_source="reference",
             baseline_metadata={
@@ -156,6 +159,7 @@ def run_baseline(
         llm_response=resp,
         score=score,
         mode="baseline",
+        user_prompt=user_prompt,
         findings=None,
         baseline_source="generated",
         baseline_metadata=None,
