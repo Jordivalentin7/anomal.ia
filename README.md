@@ -21,8 +21,8 @@ Conversational Agents*, 2025) e incorpora dos aportaciones propias:
 ### 1. Clonar y entrar
 
 ```bash
-git clone <url-del-repo>
-cd tfg-agentes-ia
+git clone https://github.com/Jordivalentin7/anomal.ia.git
+cd anomal.ia
 ```
 
 ### 2. Crear entorno virtual e instalar dependencias
