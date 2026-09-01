@@ -92,6 +92,17 @@ def call_model(
 ) -> LLMResponse:
     """Llamada unificada a un modelo, devolviendo texto y métricas básicas."""
     start = time.time()
+    # Guarda: los modelos retirados por el proveedor (available=False) no se
+    # invocan. La interfaz ya impide seleccionarlos, pero esto blinda cualquier
+    # otra ruta de código y evita un 404 opaco del proveedor.
+    if not getattr(spec, "available", True):
+        return LLMResponse(
+            content="",
+            model=spec.model_id,
+            provider=spec.provider,
+            latency_s=0.0,
+            error=f"El modelo '{spec.display_name}' ya no está disponible en el proveedor.",
+        )
     try:
         if spec.provider == "mistral":
             client = _registry.mistral

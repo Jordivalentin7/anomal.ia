@@ -226,9 +226,11 @@ Devuelve SOLO un JSON: {"level":"Básica|Intermedia|Avanzada|Experta","confidenc
 def _get_classifier_model():
     """Selecciona el modelo más rápido disponible para clasificación.
 
-    Prioriza Llama 3.1 8B Instant (Groq, ~50 ms) por velocidad; cae a
-    Mistral Small si Groq no está configurado, y a cualquier otro modelo
-    del catálogo como último recurso.
+    Prioriza Llama 3.1 8B Instant (Groq) y luego Mistral Small por velocidad;
+    como último recurso, cualquier modelo del catálogo. En todos los casos se
+    exige que el modelo esté marcado como disponible (available=True) y que su
+    proveedor tenga clave configurada, para no intentar llamar a modelos que el
+    proveedor ha retirado (evita errores 404 y la caída silenciosa a heurística).
     """
     from .config import MODEL_CATALOG
     from .providers import available_providers
@@ -237,10 +239,10 @@ def _get_classifier_model():
     preferred_ids = ["llama-3.1-8b-instant", "mistral-small-latest"]
     for pid in preferred_ids:
         for m in MODEL_CATALOG:
-            if m.model_id == pid and m.provider in provs:
+            if m.model_id == pid and m.provider in provs and m.available:
                 return m
     for m in MODEL_CATALOG:
-        if m.provider in provs:
+        if m.provider in provs and m.available:
             return m
     return None
 

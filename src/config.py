@@ -17,6 +17,11 @@ class ModelSpec:
     display_name: str
     origin: str
     notes: str
+    # Los proveedores retiran modelos con el tiempo. Los que ya no se sirven se
+    # marcan available=False: siguen figurando en el catálogo (y en la interfaz)
+    # para no perder la trazabilidad con la memoria y la evaluación del TFG,
+    # pero no pueden seleccionarse ni ejecutarse, evitando errores 404 en vivo.
+    available: bool = True
 
 
 MODEL_CATALOG: List[ModelSpec] = [
@@ -25,7 +30,9 @@ MODEL_CATALOG: List[ModelSpec] = [
         model_id="open-mixtral-8x7b",
         display_name="Mixtral 8x7B (Mistral AI)",
         origin="Francia",
-        notes="Modelo de referencia del estudio base. Mixture of Experts.",
+        notes="Modelo de referencia del estudio base. Mixture of Experts. "
+              "Retirado del catálogo de Mistral AI tras la evaluación del TFG.",
+        available=False,
     ),
     ModelSpec(
         provider="mistral",
@@ -46,14 +53,18 @@ MODEL_CATALOG: List[ModelSpec] = [
         model_id="llama-3.3-70b-versatile",
         display_name="Llama 3.3 70B (Groq)",
         origin="EE.UU.",
-        notes="Referencia de alto rendimiento para comparativa.",
+        notes="Referencia de alto rendimiento para comparativa. "
+              "Retirado del catálogo de Groq tras la evaluación del TFG.",
+        available=False,
     ),
     ModelSpec(
         provider="groq",
         model_id="llama-3.1-8b-instant",
         display_name="Llama 3.1 8B Instant (Groq)",
         origin="EE.UU.",
-        notes="Modelo ligero para contraste de capacidad.",
+        notes="Modelo ligero para contraste de capacidad. "
+              "Retirado del catálogo de Groq tras la evaluación del TFG.",
+        available=False,
     ),
 ]
 

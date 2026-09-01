@@ -274,11 +274,21 @@ def model_selector_chips(
         )
         return None
 
+    # El primer modelo del catálogo (Mixtral 8x7B) puede estar retirado; la
+    # selección por defecto recae en el primer modelo realmente disponible.
+    default_model = next((m for m in models if m.available), models[0])
+
     state_key = f"{key}_selected"
     if state_key not in st.session_state:
-        st.session_state[state_key] = models[0].display_name
+        st.session_state[state_key] = default_model.display_name
 
     selected_name: str = st.session_state[state_key]
+
+    # Si el estado guardado apunta a un modelo retirado (p. ej. de una sesión
+    # anterior), lo reconducimos al primer modelo disponible.
+    if not any(m.display_name == selected_name and m.available for m in models):
+        selected_name = default_model.display_name
+        st.session_state[state_key] = selected_name
 
     # CSS base para los chips (mismo estilo que multi_model_selector)
     st.markdown(
@@ -359,20 +369,26 @@ def model_selector_chips(
     for i, model in enumerate(models):
         name, company = _model_label_parts(model)
         is_active = model.display_name == selected_name
-        icon = "✓" if is_active else "✕"
+        if not model.available:
+            # Modelo retirado por el proveedor: visible pero no seleccionable.
+            label_txt = f"⨯  {name}\n\nno disponible"
+        else:
+            icon = "✓" if is_active else "✕"
+            label_txt = f"{icon}  {name}\n\n{company}"
         with cols[i]:
             st.button(
-                f"{icon}  {name}\n\n{company}",
+                label_txt,
                 key=f"mschip-{i}",
                 on_click=_select,
                 args=(model.display_name,),
                 use_container_width=True,
+                disabled=not model.available,
             )
 
     for m in models:
-        if m.display_name == selected_name:
+        if m.display_name == selected_name and m.available:
             return m
-    return models[0]
+    return default_model
 
 
 def model_selector(
@@ -426,13 +442,21 @@ def multi_model_selector(
         )
         return []
 
+    # Preseleccionamos los dos primeros modelos DISPONIBLES (los retirados no
+    # deben quedar marcados por defecto, ya que no pueden ejecutarse).
+    available_defaults = [m.display_name for m in models if m.available][:2]
+
     state_key = f"{key}_selected"
     if state_key not in st.session_state:
-        st.session_state[state_key] = set(
-            m.display_name for m in models[: min(2, len(models))]
-        )
+        st.session_state[state_key] = set(available_defaults)
 
     selected: set[str] = st.session_state[state_key]
+    # Purga defensiva: si una sesión previa dejó marcado un modelo ya retirado,
+    # lo quitamos de la selección para que no se intente ejecutar.
+    retired = {m.display_name for m in models if not m.available}
+    if selected & retired:
+        selected -= retired
+        st.session_state[state_key] = selected
 
     # CSS base para las tarjetas-chip (estado inactivo, mismo tamaño todas)
     st.markdown(
@@ -516,15 +540,21 @@ def multi_model_selector(
     cols = st.columns(len(models))
     for i, model in enumerate(models):
         is_active = model.display_name in selected
-        icon = "✓" if is_active else "✕"
         name, company = _model_label_parts(model)
+        if not model.available:
+            # Modelo retirado por el proveedor: visible pero no seleccionable.
+            label_txt = f"⨯  {name}\n\nno disponible"
+        else:
+            icon = "✓" if is_active else "✕"
+            label_txt = f"{icon}  {name}\n\n{company}"
         with cols[i]:
             st.button(
-                f"{icon}  {name}\n\n{company}",
+                label_txt,
                 key=f"mmchip-{i}",
                 on_click=_toggle,
                 args=(model.display_name,),
                 use_container_width=True,
+                disabled=not model.available,
             )
 
-    return [m for m in models if m.display_name in selected]
+    return [m for m in models if m.display_name in selected and m.available]
